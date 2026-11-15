@@ -1,112 +1,25 @@
 # Instant Translate
 
-Расширение для Safari: выделяете текст на странице, и рядом сразу появляется окошко с переводом. Никаких кнопок, горячих клавиш и API-ключей.
+Safari extension: select text on any page and a translation pops up right next to it. No buttons, no API keys.
 
-![Окно перевода под выделенным текстом](docs/screenshot.png)
+![Translation popup](docs/screenshot.png)
 
-## Возможности
+## How it works
 
-- Перевод появляется сразу после выделения мышкой, в том числе внутри полей ввода и `textarea`.
-- Язык исходного текста определяется автоматически.
-- По умолчанию перевод на русский. Если выделенный текст уже на русском, перевод идёт на английский. Оба языка меняются в меню расширения.
-- Под переводом видно направление («английский → русский») и есть кнопка «Копировать».
-- Окно закрывается по Esc или клику мимо него, поддерживает светлую и тёмную тему.
-- Перевод можно выключить одной галочкой в меню на панели Safari.
+`content.js` catches the text selection and shows the popup. `background.js` sends the text to Google Translate, which auto-detects the language. If the text is already in your target language, it is translated into your second language instead. Both languages are set from the toolbar menu.
 
-## Как это работает
-
-```
- выделение текста (mouseup)
-          │
-          ▼
- content.js ── берёт выделенный текст, показывает окно «Перевожу…»
-          │  runtime.sendMessage({ type: "translate", text, primary, secondary })
-          ▼
- background.js ── POST translate.googleapis.com/translate_a/single (client=gtx, sl=auto)
-          │  если язык текста совпал с основным → второй запрос на запасной язык
-          ▼
- content.js ── показывает перевод и направление в том же окне
-```
-
-### content.js: выделение и окно
-
-- Встраивается во все страницы и фреймы (`<all_urls>`, `all_frames`).
-- Слушает `mouseup` в фазе захвата и через 10 мс читает выделение: так браузер успевает его завершить. Для `input` и `textarea` текст берётся через `selectionStart` и `selectionEnd`, потому что `getSelection()` их не видит.
-- Текст обрезается до 5000 символов. Повторное выделение того же текста не шлёт новый запрос.
-- Окно живёт в **закрытом Shadow DOM** внутри собственного элемента `<instant-translate-popup>`. Стили сайта не ломают окно, а стили окна не протекают на сайт.
-- Позиция считается от прямоугольника выделения: окно ставится под текстом, а если снизу не хватает места, над ним. Оно не выходит за края экрана.
-- У каждого запроса свой номер (`requestId`). Если вы успели выделить что-то другое, пока шёл перевод, устаревший ответ просто отбрасывается.
-
-### background.js: запрос к переводчику
-
-- Работает как service worker расширения.
-- Запрос делается из фона, а не со страницы, поэтому ему не мешают CSP и CORS сайта. Доступ разрешён только к `https://translate.googleapis.com/*` (`host_permissions`).
-- Используется бесплатный endpoint Google Translate (`client=gtx`), ключ не нужен. Текст уходит в теле POST, а не в URL.
-- Google возвращает определённый язык исходника. Если он совпал с основным языком перевода, расширение делает второй запрос на запасной язык.
-
-### popup.html / popup.js: настройки
-
-- Настройки хранятся в `storage.local`: включено или нет, основной и запасной язык.
-- `content.js` подписан на `storage.onChanged`, поэтому изменения сразу применяются во всех открытых вкладках без перезагрузки.
-
-### Обёртка для Safari
-
-Safari распространяет расширения только внутри macOS-приложения. Xcode-проект в папке `Instant Translate/` сгенерирован утилитой `xcrun safari-web-extension-converter` и ссылается на файлы из `extension/`. Правите JavaScript, пересобираете приложение, и Safari подхватывает новую версию.
-
-Код в `extension/` написан как обычное WebExtension (Manifest V3, работает и с `browser.*`, и с `chrome.*`), поэтому его несложно перенести в Chrome или Firefox.
-
-## Структура
-
-```
-extension/             код расширения
-  manifest.json
-  content.js           выделение, окно перевода
-  background.js        запросы к Google Translate
-  popup.html, popup.js настройки в меню на панели
-  icons/
-Instant Translate/     Xcode-проект: приложение-обёртка для Safari
-test/index.html        тестовая страница с заглушкой API расширения
-docs/                  скриншот для README
-```
-
-## Установка
-
-Нужен Mac с Xcode.
-
-1. Соберите приложение. Чтобы Safari принимал расширение без лишних разрешений, подпишите его своим сертификатом Apple Development (подойдёт бесплатный Personal Team с Apple ID):
-
-   ```bash
-   xcodebuild -project "Instant Translate/Instant Translate.xcodeproj" -scheme "Instant Translate" -configuration Release -derivedDataPath build CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Apple Development" DEVELOPMENT_TEAM=<ВАШ_TEAM_ID> build
-   ```
-
-   Свой Team ID можно посмотреть командой `security find-identity -v -p codesigning`, а затем в поле `OU` сертификата. Можно и просто открыть проект в Xcode и выбрать команду в Signing & Capabilities у обеих целей.
-
-2. Скопируйте приложение в «Программы» и запустите его один раз:
-
-   ```bash
-   ditto "build/Build/Products/Release/Instant Translate.app" "/Applications/Instant Translate.app"
-   open "/Applications/Instant Translate.app"
-   ```
-
-3. Safari → Настройки → Расширения: включите **Instant Translate** и в «Изменить на веб-сайтах» разрешите его на всех сайтах.
-4. Перезагрузите уже открытые страницы и выделите любой текст.
-
-Без сертификата можно собрать с `CODE_SIGN_IDENTITY="-"`. Тогда в Safari нужно включить «Показывать функции для веб-разработчиков» в разделе «Дополнения», а затем «Разработка» → «Разрешить неподписанные расширения». Эта галочка сбрасывается после каждого перезапуска Safari.
-
-## Проверка без Safari
-
-`test/index.html` подключает настоящие `background.js` и `content.js` с заглушкой API расширения, так что окно перевода можно проверить в любом браузере:
+## Install
 
 ```bash
-python3 -m http.server 8765
+xcodebuild -project "Instant Translate/Instant Translate.xcodeproj" -scheme "Instant Translate" -configuration Release -derivedDataPath build CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Apple Development" DEVELOPMENT_TEAM=<YOUR_TEAM_ID> build
+ditto "build/Build/Products/Release/Instant Translate.app" "/Applications/Instant Translate.app"
+open "/Applications/Instant Translate.app"
 ```
 
-Затем откройте http://localhost:8765/test/index.html и выделите текст.
+Then enable it in Safari → Settings → Extensions and allow it on all websites.
 
-## Приватность
+Selected text is sent to Google Translate.
 
-Выделенный текст отправляется в Google Translate. Расширение ничего не хранит и никуда больше не передаёт. На страницах с конфиденциальными данными выключайте перевод в меню расширения.
+## License
 
-## Лицензия
-
-MIT, см. [LICENSE](LICENSE).
+MIT
