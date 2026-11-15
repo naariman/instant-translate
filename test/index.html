@@ -6,26 +6,10 @@
   <style>
     body { font: 16px/1.6 -apple-system, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }
   </style>
-  <script>
-    // Заглушка API расширения: тот же код background.js и content.js, без Safari.
-    const listeners = [];
-    const store = {};
-    globalThis.chrome = {
-      runtime: {
-        lastError: undefined,
-        onMessage: { addListener: (fn) => listeners.push(fn) },
-        sendMessage: (msg, cb) => { listeners.forEach((fn) => fn(msg, {}, cb)); },
-      },
-      storage: {
-        local: {
-          get: (defaults, cb) => cb({ ...defaults, ...store }),
-          set: (obj) => Object.assign(store, obj),
-        },
-        onChanged: { addListener: () => {} },
-      },
-    };
-  </script>
+  <script src="stub.js"></script>
   <script src="../extension/background.js"></script>
+  <script src="../extension/settings.js"></script>
+  <script src="../extension/translate-popup.js"></script>
   <script src="../extension/content.js"></script>
 </head>
 <body>
@@ -34,5 +18,6 @@
   <p id="ru">Быстрая коричневая лиса перепрыгивает через ленивую собаку.</p>
   <p id="kk">Сәлеметсіз бе, қалыңыз қалай?</p>
   <textarea id="ta" rows="3" cols="60">Selected text inside a textarea should also be translated.</textarea>
+  <p><a href="youtube.html">YouTube subtitles test →</a></p>
 </body>
 </html>

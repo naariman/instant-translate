@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Instant Translate",
-  "description": "Выделите текст — перевод сразу появится в окошке рядом.",
-  "version": "1.1.0",
+  "description": "Выделите текст — перевод сразу появится рядом. На YouTube — клик по слову в субтитрах.",
+  "version": "1.2.0",
   "icons": {
     "48": "icons/icon-48.png",
     "96": "icons/icon-96.png",
@@ -10,15 +10,27 @@
     "256": "icons/icon-256.png",
     "512": "icons/icon-512.png"
   },
-  "permissions": ["storage"],
-  "host_permissions": ["https://clients5.google.com/*", "https://translate.googleapis.com/*"],
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://clients5.google.com/*",
+    "https://translate.googleapis.com/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "settings.js",
+        "translate-popup.js",
+        "content.js",
+        "youtube.js"
+      ],
       "run_at": "document_idle",
       "all_frames": true
     }

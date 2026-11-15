@@ -8,6 +8,8 @@ Safari extension: select text on any page and a translation pops up right next t
 
 `content.js` catches the text selection and shows the popup. `background.js` sends the text to Google Translate, which auto-detects the language. If the text is already in your target language, it is translated into your second language instead. Both languages are set from the toolbar menu.
 
+On YouTube, click any word in the subtitles: the video pauses and the translation pops up. You can also translate the whole subtitle line or hear the word pronounced. Hovering over the subtitles pauses the video too.
+
 ## Install
 
 ```bash

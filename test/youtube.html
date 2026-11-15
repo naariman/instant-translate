@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Instant Translate — YouTube subtitles test</title>
+  <style>
+    body { font: 15px/1.5 -apple-system, sans-serif; margin: 24px; background: #fff; }
+    #movie_player { position: relative; width: 600px; max-width: 100%; aspect-ratio: 16 / 9; background: #000; }
+    #movie_player video { width: 100%; height: 100%; display: block; }
+    .ytp-caption-window-container { position: absolute; inset: 0; pointer-events: none; }
+    .caption-window {
+      position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%);
+      text-align: center; width: max-content; max-width: 90%; pointer-events: auto;
+    }
+    .caption-visual-line { display: block; }
+    .ytp-caption-segment { background: rgba(8, 8, 8, 0.75); color: #fff; font-size: 22px; padding: 1px 6px; user-select: none; }
+    /* Как у YouTube: невидимый слой панели управления поверх нижних субтитров. */
+    .ytp-chrome-bottom { position: absolute; left: 0; right: 0; bottom: 0; height: 40%; }
+    #log { font: 12px/1.4 ui-monospace, monospace; color: #555; margin-top: 12px; white-space: pre; }
+  </style>
+  <script src="stub.js"></script>
+  <script>globalThis.__instantTranslateYouTubeTest = true;</script>
+  <script src="../extension/background.js"></script>
+  <script src="../extension/settings.js"></script>
+  <script src="../extension/translate-popup.js"></script>
+  <script src="../extension/content.js"></script>
+  <script src="../extension/youtube.js"></script>
+</head>
+<body>
+  <h1>YouTube subtitles test</h1>
+  <!-- Разметка как у плеера YouTube -->
+  <div id="movie_player" class="html5-video-player">
+    <video class="html5-main-video" muted playsinline></video>
+    <div class="ytp-caption-window-container">
+      <div class="caption-window ytp-caption-window-bottom">
+        <span class="captions-text"></span>
+      </div>
+    </div>
+    <div class="ytp-chrome-bottom"></div>
+  </div>
+  <button id="fs" type="button" onclick="document.getElementById('movie_player').requestFullscreen()">Fullscreen</button>
+  <div id="log"></div>
+
+  <script>
+    const video = document.querySelector("video");
+    const captions = document.querySelector(".captions-text");
+    const log = document.getElementById("log");
+    window.playerClicks = 0;
+
+    // Видео из canvas: настоящие play/pause без файла.
+    const canvas = Object.assign(document.createElement("canvas"), { width: 640, height: 360 });
+    const ctx = canvas.getContext("2d");
+    let frame = 0;
+    setInterval(() => {
+      ctx.fillStyle = `hsl(${frame % 360}, 40%, 25%)`;
+      ctx.fillRect(0, 0, 640, 360);
+      ctx.fillStyle = "#fff";
+      ctx.font = "28px sans-serif";
+      ctx.fillText(video.paused ? "paused" : `playing ${frame}`, 24, 48);
+      if (!video.paused) frame++;
+    }, 33);
+    video.srcObject = canvas.captureStream(30);
+    video.play();
+
+    // Субтитры: каждые 2 с, пока видео играет, строка заменяется новыми узлами — как на YouTube.
+    const lines = [
+      ["We need to run a company", "that people actually love."],
+      ["Ambiguity is the enemy", "of good decisions."],
+      ["Let's figure out what went wrong."],
+    ];
+    let index = 0;
+    function render() {
+      const nodes = lines[index % lines.length].map((text) => {
+        const line = document.createElement("span");
+        line.className = "caption-visual-line";
+        const seg = document.createElement("span");
+        seg.className = "ytp-caption-segment";
+        seg.textContent = text;
+        line.append(seg);
+        return line;
+      });
+      captions.replaceChildren(...nodes);
+    }
+    render();
+    // window.freezeCaptions = true — оставить текущую строку (удобно для точных кликов в тестах).
+    setInterval(() => { if (!video.paused && !window.freezeCaptions) { index++; render(); } }, 2000);
+
+    // Плеер YouTube переключает паузу по клику — так ловим «утечку» клика по слову.
+    document.getElementById("movie_player").addEventListener("click", () => {
+      window.playerClicks++;
+      video.paused ? video.play() : video.pause();
+    });
+
+    setInterval(() => {
+      log.textContent = `video: ${video.paused ? "paused" : "playing"} | player clicks: ${window.playerClicks} | popup open: ${ITPopup.isOpen()}`;
+    }, 200);
+  </script>
+</body>
+</html>
