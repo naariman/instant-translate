@@ -1,6 +1,6 @@
 # Instant Translate
 
-Safari extension: select text on any page and a translation pops up right next to it. No buttons, no API keys.
+Browser extension for Safari and Chrome: select text on any page and a translation pops up right next to it. No buttons, no API keys.
 
 ![Translation popup](docs/screenshot.png)
 
@@ -10,15 +10,23 @@ Safari extension: select text on any page and a translation pops up right next t
 
 On YouTube, click any word in the subtitles: the video pauses and the translation pops up. You can also translate the whole subtitle line or hear the word pronounced. Hovering over the subtitles pauses the video too.
 
-## Install
+## Install in Safari
+
+Needs Xcode. Sign in with your Apple ID in Xcode → Settings → Accounts to get a free signing certificate.
 
 ```bash
-xcodebuild -project "Instant Translate/Instant Translate.xcodeproj" -scheme "Instant Translate" -configuration Release -derivedDataPath build CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Apple Development" DEVELOPMENT_TEAM=<YOUR_TEAM_ID> build
-ditto "build/Build/Products/Release/Instant Translate.app" "/Applications/Instant Translate.app"
-open "/Applications/Instant Translate.app"
+git clone https://github.com/naariman/instant-translate.git
+cd instant-translate
+./install.sh
 ```
 
 Then enable it in Safari → Settings → Extensions and allow it on all websites.
+
+## Install in Chrome
+
+1. Download this repo (Code → Download ZIP) and unzip it.
+2. Open `chrome://extensions` and turn on Developer mode.
+3. Click "Load unpacked" and choose the `extension` folder.
 
 Selected text is sent to Google Translate.
 
